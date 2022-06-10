@@ -12,8 +12,8 @@ from flask_gravatar import Gravatar
 import os
 import smtplib
 
-EMAIL_ADDRESS = os.environ.get("EMAIL_ADD")
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASS")
+EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')

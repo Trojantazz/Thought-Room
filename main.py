@@ -195,6 +195,7 @@ def send_email(name, email, phone, message):
         connection.starttls()
         connection.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         connection.sendmail(EMAIL_ADDRESS, EMAIL_PASSWORD, email_message)
+    return render_template("contact")
 
 
 @app.route("/new-post", methods=["GET", "POST"])

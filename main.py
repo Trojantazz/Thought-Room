@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort, request
+from flask import Flask, render_template, redirect, url_for, flash, abort
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -10,10 +10,6 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, cur
 from forms import LoginForm, RegisterForm, CreatePostForm, CommentForm
 from flask_gravatar import Gravatar
 import os
-import smtplib
-
-EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
@@ -23,7 +19,7 @@ gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=Fa
                     base_url=None)
 
 ##CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite///blog.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -35,8 +31,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-##CONFIGURE Database
-# ------user table configuration------#
+##CONFIGURE TABLE
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -47,7 +42,6 @@ class User(UserMixin, db.Model):
     comments = relationship("Comment", back_populates="comment_author")
 
 
-# ------blogposts table configuration------#
 class BlogPost(db.Model):
     __tablename__ = "blog_posts"
     id = db.Column(db.Integer, primary_key=True)
@@ -61,7 +55,6 @@ class BlogPost(db.Model):
     comments = relationship("Comment", back_populates="parent_post")
 
 
-# ------comment table configuration------#
 class Comment(db.Model):
     __tablename__ = "comments"
     id = db.Column(db.Integer, primary_key=True)
@@ -85,31 +78,28 @@ def admin_only(f):
     return decorated_function
 
 
-# -------Index page, gets all Blogposts from database and renders them to page------#
 @app.route('/')
 def get_all_posts():
     posts = BlogPost.query.all()
     return render_template("index.html", all_posts=posts, current_user=current_user)
 
 
-# -------returns registration form that will take user data and add it into database------#
 @app.route('/register', methods=["GET", "POST"])
 def register_new_user():
     form = RegisterForm()
     if form.validate_on_submit():
-        # ------conditional statement to check if email address already exists in database------#
+
         if User.query.filter_by(email=form.email.data).first():
             print(User.query.filter_by(email=form.email.data).first())
-            # User already exists will return flash message to alert user that they are already registered
+            # User already exists
             flash("You've already signed up with that email, log in instead!")
             return redirect(url_for('login'))
-        # ----user can register/this will trigger password encryption protocol so that it's not saved as plaintext---#
+
         hash_and_salted_password = generate_password_hash(
             form.password.data,
             method='pbkdf2:sha256',
             salt_length=8
         )
-        # ------creates new_user object from User class and configures it into database------#
         new_user = User(
             email=form.email.data,
             username=form.username.data,
@@ -131,15 +121,13 @@ def login():
         password = form.password.data
 
         user = User.query.filter_by(email=email).first()
-        # ------Email doesn't exist or password incorrect.------#
+        # Email doesn't exist or password incorrect.
         if not user:
             flash("That email does not exist, please try again.")
             return redirect(url_for('login'))
-        # ------encrypts inserted password and compares it against hashed password in database------#
         elif not check_password_hash(user.password, password):
             flash('Password incorrect, please try again.')
             return redirect(url_for('login'))
-        # ------everything checks out and this will log the user into the application and show all posts-------#
         else:
             login_user(user)
             return redirect(url_for('get_all_posts'))
@@ -147,7 +135,6 @@ def login():
 
 
 @app.route('/logout')
-# -------logs out user-------#
 def logout():
     logout_user()
     return redirect(url_for('get_all_posts'))
@@ -155,15 +142,14 @@ def logout():
 
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
-    # ------creates form object from 'CommentForm' class------#
     form = CommentForm()
     requested_post = BlogPost.query.get(post_id)
-    # ------conditional statement to check if user is authenticated------#
+
     if form.validate_on_submit():
         if not current_user.is_authenticated:
             flash("You need to login or register to comment.")
             return redirect(url_for("login"))
-        # ------creates new comment object to be added into the comment database
+
         new_comment = Comment(
             text=form.comment_text.data,
             comment_author=current_user,
@@ -180,22 +166,9 @@ def about():
     return render_template("about.html", current_user=current_user)
 
 
-@app.route("/contact", methods=["GET", "POST"])
+@app.route("/contact")
 def contact():
-    if request.method == "POST":
-        data = request.form
-        send_email(data["name"], data["email"], data["phone"], data["message"])
-        return render_template("contact.html", msg_sent=True)
-    return render_template("contact.html", current_user=current_user, msg_sent=False)
-
-
-def send_email(name, email, phone, message):
-    email_message = f"Subject:New Message\n\nName:{name}\nEmail:{email}\nPhone Number:{phone}\nMessage:{message}"
-    with smtplib.SMTP("smtp.gmail.com", port=587) as connection:
-        connection.starttls()
-        connection.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        connection.sendmail(EMAIL_ADDRESS, EMAIL_PASSWORD, email_message)
-    return render_template("contact")
+    return render_template("contact.html", current_user=current_user)
 
 
 @app.route("/new-post", methods=["GET", "POST"])

@@ -17,8 +17,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "krefjezivot")
 ckeditor = CKEditor(app)
 Bootstrap(app)
-MY_EMAIL = "MY_EMAIL"
-MY_PASSWORD = "PASSWORD"
+MY_EMAIL = os.environ.get("EMAIL")
+MY_PASSWORD = os.environ.get("PASSWORD")
 gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=False, force_lower=False, use_ssl=False,
                     base_url=None)
 

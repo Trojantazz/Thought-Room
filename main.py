@@ -10,9 +10,10 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, cur
 from forms import LoginForm, RegisterForm, CreatePostForm, CommentForm
 from flask_gravatar import Gravatar
 import os
+import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "krefjezivot")
 ckeditor = CKEditor(app)
 Bootstrap(app)
 gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=False, force_lower=False, use_ssl=False,
@@ -81,11 +82,13 @@ def admin_only(f):
 @app.route('/')
 def get_all_posts():
     posts = BlogPost.query.all()
-    return render_template("index.html", all_posts=posts, current_user=current_user)
+    current_year = datetime.datetime.now().year
+    return render_template("index.html", all_posts=posts, current_user=current_user, year=current_year)
 
 
 @app.route('/register', methods=["GET", "POST"])
 def register_new_user():
+    current_year = datetime.datetime.now().year
     form = RegisterForm()
     if form.validate_on_submit():
 
@@ -110,11 +113,12 @@ def register_new_user():
         login_user(new_user)
         return redirect(url_for("get_all_posts"))
 
-    return render_template("register.html", form=form, current_user=current_user)
+    return render_template("register.html", form=form, current_user=current_user, year=current_year)
 
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
+    current_year = datetime.datetime.now().year
     form = LoginForm()
     if form.validate_on_submit():
         email = form.email.data
@@ -131,7 +135,7 @@ def login():
         else:
             login_user(user)
             return redirect(url_for('get_all_posts'))
-    return render_template("login.html", form=form, current_user=current_user)
+    return render_template("login.html", form=form, current_user=current_user, year=current_year)
 
 
 @app.route('/logout')
@@ -142,6 +146,7 @@ def logout():
 
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
+    current_year = datetime.datetime.now().year
     form = CommentForm()
     requested_post = BlogPost.query.get(post_id)
 
@@ -158,22 +163,25 @@ def show_post(post_id):
         db.session.add(new_comment)
         db.session.commit()
 
-    return render_template("post.html", post=requested_post, form=form, current_user=current_user)
+    return render_template("post.html", post=requested_post, form=form, current_user=current_user, year=current_year)
 
 
 @app.route("/about")
 def about():
-    return render_template("about.html", current_user=current_user)
+    current_year = datetime.datetime.now().year
+    return render_template("about.html", current_user=current_user, year=current_year)
 
 
 @app.route("/contact")
 def contact():
-    return render_template("contact.html", current_user=current_user)
+    current_year = datetime.datetime.now().year
+    return render_template("contact.html", current_user=current_user, year=current_year)
 
 
 @app.route("/new-post", methods=["GET", "POST"])
 @admin_only
 def add_new_post():
+    current_year = datetime.datetime.now().year
     form = CreatePostForm()
     if form.validate_on_submit():
         new_post = BlogPost(
@@ -188,12 +196,13 @@ def add_new_post():
         db.session.commit()
         return redirect(url_for("get_all_posts"))
 
-    return render_template("make-post.html", form=form, current_user=current_user)
+    return render_template("make-post.html", form=form, current_user=current_user, year=current_year)
 
 
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 @admin_only
 def edit_post(post_id):
+    current_year = datetime.datetime.now().year
     post = BlogPost.query.get(post_id)
     edit_form = CreatePostForm(
         title=post.title,
@@ -210,7 +219,7 @@ def edit_post(post_id):
         db.session.commit()
         return redirect(url_for("show_post", post_id=post.id))
 
-    return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
+    return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user, year=current_year)
 
 
 @app.route("/delete/<int:post_id>")

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort
+from flask import Flask, render_template, redirect, url_for, flash, abort, request
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -11,16 +11,19 @@ from forms import LoginForm, RegisterForm, CreatePostForm, CommentForm
 from flask_gravatar import Gravatar
 import os
 import datetime
+import smtplib
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY',"krefjezivot")
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "krefjezivot")
 ckeditor = CKEditor(app)
 Bootstrap(app)
+MY_EMAIL = "MY_EMAIL"
+MY_PASSWORD = "PASSWORD"
 gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=False, force_lower=False, use_ssl=False,
                     base_url=None)
 
 # CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL","sqlite:///blog.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite:///blog.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -176,6 +179,21 @@ def about():
 def contact():
     current_year = datetime.datetime.now().year
     return render_template("contact.html", current_user=current_user, year=current_year)
+
+
+@app.route("/form-entry", methods=["POST"])
+def receive_data():
+    if request.method == 'POST':
+        data = request.form
+        connection = smtplib.SMTP("smtp.gmail.com")
+        connection.starttls()
+        connection.login(MY_EMAIL, MY_PASSWORD)
+        connection.sendmail(
+            from_addr=MY_EMAIL,
+            to_addrs="tshiamomosiane008@gmail.com",
+            msg=f"subject=Thought-Room {data}")
+
+    return "<h1>Successfully sent your message</h1>"
 
 
 @app.route("/new-post", methods=["GET", "POST"])

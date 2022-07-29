@@ -14,7 +14,7 @@ import datetime
 import smtplib
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "krefjezivot")
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ckeditor = CKEditor(app)
 Bootstrap(app)
 MY_EMAIL = os.environ.get("EMAIL")
@@ -109,7 +109,7 @@ def register_new_user():
         new_user = User(
             email=form.email.data,
             username=form.username.data,
-            password=hash_and_salted_password,
+            password=hash_and_salted_password
         )
         db.session.add(new_user)
         db.session.commit()
